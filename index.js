@@ -26,33 +26,60 @@ require(['vs/editor/editor.main'], function () {
         return sanitizedSnippet;
     }
 
-    // Function to load all snippets
-    async function loadAllSnippets() {
+    // Function to load paginated snippets
+    async function loadSnippets(page = 1, perPage = 20) {
         try {
-            const apiUrl = 'https://generatewp.com/wp-json/wp/v2/snippet';
+            const apiUrl = `https://generatewp.com/wp-json/wp/v2/snippet?per_page=${perPage}&page=${page}`;
             const response = await fetch(apiUrl);
+
+            if (!response.ok) {
+                if (response.status === 400 || response.status === 404) {
+                    return []; // No more pages
+                } else {
+                    throw new Error('Error fetching snippets');
+                }
+            }
+
             const snippets = await response.json();
-
-            const snippetListing = document.getElementById('snippet-listing');
-            snippetListing.innerHTML = ''; // Clear existing snippets
-
-            snippets.forEach(snippet => {
-                const snippetItem = document.createElement('div');
-                snippetItem.className = 'snippet-item bg-gray-200 p-2 rounded-md cursor-pointer';
-                snippetItem.textContent = snippet.title.rendered;
-
-                // Add click event to insert snippet into editor
-                snippetItem.addEventListener('click', () => {
-                    const cleanedContent = cleanSnippet(snippet.content.rendered);
-                    const finalContent = `<?php\n${cleanedContent}`;
-                    editor.setValue(finalContent);
-                });
-
-                snippetListing.appendChild(snippetItem);
-            });
+            return snippets;
         } catch (error) {
-            console.error('Error loading snippets:', error);
-            alert('An error occurred while loading snippets. Please try again later.');
+            console.error('Error fetching snippets:', error);
+            alert('An error occurred while fetching snippets. Please try again later.');
+            return [];
+        }
+    }
+
+    // Function to load all snippets with pagination
+    async function loadAllSnippets() {
+        const snippetListing = document.getElementById('snippet-listing');
+        snippetListing.innerHTML = ''; // Clear existing snippets
+
+        let page = 1;
+        const perPage = 20;
+        let hasMore = true;
+
+        while (hasMore) {
+            const snippets = await loadSnippets(page, perPage);
+
+            if (snippets.length === 0) {
+                hasMore = false;
+            } else {
+                snippets.forEach(snippet => {
+                    const snippetItem = document.createElement('div');
+                    snippetItem.className = 'snippet-item bg-gray-200 p-2 rounded-md cursor-pointer';
+                    snippetItem.textContent = snippet.title.rendered;
+
+                    // Add click event to insert snippet into editor
+                    snippetItem.addEventListener('click', () => {
+                        const cleanedContent = cleanSnippet(snippet.content.rendered);
+                        const finalContent = `<?php\n${cleanedContent}`;
+                        editor.setValue(finalContent);
+                    });
+
+                    snippetListing.appendChild(snippetItem);
+                });
+                page++; // Fetch the next page
+            }
         }
     }
 
