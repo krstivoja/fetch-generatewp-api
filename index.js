@@ -66,7 +66,7 @@ require(['vs/editor/editor.main'], function () {
             } else {
                 snippets.forEach(snippet => {
                     const snippetItem = document.createElement('div');
-                    snippetItem.className = 'snippet-item bg-gray-200 p-2 rounded-md cursor-pointer';
+                    snippetItem.className = 'snippet-item bg-gray-200 p-1 text-[0.7rem] rounded-md cursor-pointer';
                     snippetItem.textContent = snippet.title.rendered;
 
                     // Add click event to insert snippet into editor
