@@ -1,3 +1,5 @@
+const $pageNo = 10;
+
 // Load Monaco Editor
 require.config({ paths: { vs: 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.34.1/min/vs' } });
 require(['vs/editor/editor.main'], function () {
@@ -27,7 +29,7 @@ require(['vs/editor/editor.main'], function () {
     }
 
     // Function to load paginated snippets
-    async function loadSnippets(page = 1, perPage = 20) {
+    async function loadSnippets(page = 1, perPage = $pageNo) {
         try {
             const apiUrl = `https://generatewp.com/wp-json/wp/v2/snippet?per_page=${perPage}&page=${page}`;
             const response = await fetch(apiUrl);
@@ -55,11 +57,17 @@ require(['vs/editor/editor.main'], function () {
         snippetListing.innerHTML = ''; // Clear existing snippets
 
         let page = 1;
-        const perPage = 20;
+        const perPage = $pageNo;
         let hasMore = true;
 
-        while (hasMore) {
+        // Create pagination controls
+        const paginationControls = document.createElement('div');
+        paginationControls.id = 'snippet-listing-pagination';
+        document.getElementById('sidebar').appendChild(paginationControls); // Append controls to the sidebar
+
+        const updateSnippets = async () => {
             const snippets = await loadSnippets(page, perPage);
+            snippetListing.innerHTML = ''; // Clear existing snippets
 
             if (snippets.length === 0) {
                 hasMore = false;
@@ -78,9 +86,33 @@ require(['vs/editor/editor.main'], function () {
 
                     snippetListing.appendChild(snippetItem);
                 });
-                page++; // Fetch the next page
             }
-        }
+
+            // Update pagination controls
+            paginationControls.innerHTML = `
+                <button id="prev-page" ${page === 1 ? 'disabled' : ''}>Previous</button>
+                <span>Page ${page}</span>
+                <button id="next-page" ${!hasMore ? 'disabled' : ''}>Next</button>
+            `;
+
+            // Add event listeners for pagination buttons
+            document.getElementById('prev-page').addEventListener('click', () => {
+                if (page > 1) {
+                    page--;
+                    updateSnippets();
+                }
+            });
+
+            document.getElementById('next-page').addEventListener('click', () => {
+                if (hasMore) {
+                    page++;
+                    updateSnippets();
+                }
+            });
+        };
+
+        // Initial load of snippets
+        updateSnippets();
     }
 
     // Call loadAllSnippets on page load
